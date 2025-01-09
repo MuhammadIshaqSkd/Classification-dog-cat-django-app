@@ -171,3 +171,4 @@ cython_debug/
 .pypirc
 *.xml
 *.iml
+ml_models/svm_cat_dog_classifier.pkl

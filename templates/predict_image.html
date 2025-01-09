@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat or Dog Prediction</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        #predict-form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #image-preview {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        #result {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .loading-spinner.active {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .prediction-result {
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-result h2 {
+            color: #333;
+        }
+
+        .probability {
+            font-size: 16px;
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload an Image to Predict Cat or Dog</h1>
+    <form id="predict-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <div class="loading-spinner" id="loading-spinner"></div>
+    <img id="image-preview" src="" alt="Image preview will appear here" style="display:none;">
+
+    <div id="result"></div>
+
+    <script>
+        $('#predict-form').on('submit', function(e) {
+            e.preventDefault();
+
+            var formData = new FormData(this);
+
+            // Show loading spinner
+            $('#loading-spinner').addClass('active');
+            $('#result').html('');
+            $('#image-preview').hide(); // Hide the previous image preview
+
+            // Show image preview
+            var file = $("input[type='file']")[0].files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#image-preview').attr('src', e.target.result).show();
+                }
+                reader.readAsDataURL(file);
+            }
+
+            $.ajax({
+                url: '/predict/',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#loading-spinner').removeClass('active');
+
+                    $('#result').html(
+                        `<div class="prediction-result">
+                            <h2>Prediction Result</h2>
+                            <div class="probability label">Prediction: ${response.label}</div>
+                            <div class="probability">Cats Probability: ${response.probabilities.cats.toFixed(2)}%</div>
+                            <div class="probability">Dogs Probability: ${response.probabilities.dogs.toFixed(2)}%</div>
+                        </div>`
+                    );
+                },
+                error: function(error) {
+                    $('#loading-spinner').removeClass('active');
+                    $('#result').html('Error: ' + error.responseJSON.error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
